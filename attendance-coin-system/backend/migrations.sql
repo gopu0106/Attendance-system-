@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-    role VARCHAR(20) DEFAULT 'student' CHECK(role IN ('student', 'admin')),
+    role VARCHAR(20) DEFAULT 'student' CHECK(role IN ('student', 'faculty', 'mess_staff', 'admin')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );

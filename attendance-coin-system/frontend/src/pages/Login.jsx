@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
-import { Lock, User, ArrowLeft } from 'lucide-react';
+import { Lock, User } from 'lucide-react';
+import AuthShell from '../components/layout/AuthShell';
+import GlowButton from '../components/ui/GlowButton';
+import ErrorMessage from '../components/ui/ErrorMessage';
+import SuccessMessage from '../components/ui/SuccessMessage';
+import { ROLES } from '../constants/roles';
 
 const Login = () => {
     const [formData, setFormData] = useState({ username: '', password: '' });
@@ -12,10 +17,8 @@ const Login = () => {
     const location = useLocation();
 
     useEffect(() => {
-        // Check for success message from signup
         if (location.state?.message) {
             setSuccessMessage(location.state.message);
-            // Clear the message from location state
             window.history.replaceState({}, document.title);
         }
     }, [location]);
@@ -34,14 +37,21 @@ const Login = () => {
             const response = await api.post('/auth/login', formData);
             const { token, user } = response.data;
 
-            // Store token and user info
             localStorage.setItem('token', token);
             localStorage.setItem('user', JSON.stringify(user));
 
-            // Redirect based on role
-            if (user.role === 'admin') {
+            // Role-based redirect using constants
+            const role = user.role;
+            if (role === ROLES.STUDENT) {
+                navigate('/dashboard');
+            } else if (role === ROLES.FACULTY) {
+                navigate('/faculty');
+            } else if (role === ROLES.MESS_STAFF) {
+                navigate('/mess');
+            } else if (role === ROLES.ADMIN) {
                 navigate('/admin');
             } else {
+                // Fallback to dashboard
                 navigate('/dashboard');
             }
         } catch (err) {
@@ -52,95 +62,77 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white">
+        <AuthShell
+            title="Welcome Back"
+            subtitle="Sign in to AttendanceCoin"
+        >
+            <SuccessMessage message={successMessage} className="mb-6" />
+            <ErrorMessage message={error} className="mb-6" />
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                    <label className="block text-sm font-medium text-text-light mb-2">
+                        Username
+                    </label>
+                    <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted-dark" />
+                        <input
+                            type="text"
+                            name="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            placeholder="Enter username"
+                            className="w-full pl-11 pr-4 py-3 bg-white/5 border border-glass-border rounded-lg text-text-light placeholder-text-muted-dark focus:border-primary-violet focus:shadow-glow-soft focus:outline-none transition-smooth"
+                            required
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-text-light mb-2">
+                        Password
+                    </label>
+                    <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted-dark" />
+                        <input
+                            type="password"
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            placeholder="Enter password"
+                            className="w-full pl-11 pr-4 py-3 bg-white/5 border border-glass-border rounded-lg text-text-light placeholder-text-muted-dark focus:border-primary-violet focus:shadow-glow-soft focus:outline-none transition-smooth"
+                            required
+                        />
+                    </div>
+                </div>
+
+                <GlowButton
+                    type="submit"
+                    disabled={loading}
+                    loading={loading}
+                    className="w-full"
+                >
+                    Sign In
+                </GlowButton>
+            </form>
+
+            <div className="mt-6 text-center">
+                <p className="text-sm text-text-muted-dark">
+                    Don't have an account?{' '}
                     <button
-                        onClick={() => navigate('/')}
-                        className="flex items-center gap-2 text-white/90 hover:text-white mb-4 transition-colors"
+                        onClick={() => navigate('/signup')}
+                        className="text-primary-violet hover:text-secondary-cyan font-semibold transition-smooth"
                     >
-                        <ArrowLeft className="w-5 h-5" />
-                        Back to Home
+                        Sign up here
                     </button>
-                    <h1 className="text-3xl font-bold">Welcome Back</h1>
-                    <p className="text-blue-100 mt-2">Sign in to AttendanceCoin</p>
-                </div>
-
-                <div className="p-8">
-                    {successMessage && (
-                        <div className="bg-green-50 text-green-600 p-4 rounded-lg mb-6 text-sm">
-                            {successMessage}
-                        </div>
-                    )}
-
-                    {error && (
-                        <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6 text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                <input
-                                    type="text"
-                                    name="username"
-                                    value={formData.username}
-                                    onChange={handleChange}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                    placeholder="Enter username"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                <input
-                                    type="password"
-                                    name="password"
-                                    value={formData.password}
-                                    onChange={handleChange}
-                                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                                    placeholder="Enter password"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
-                        >
-                            {loading ? 'Signing in...' : 'Sign In'}
-                        </button>
-                    </form>
-
-                    <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                            Don't have an account?{' '}
-                            <button
-                                onClick={() => navigate('/signup')}
-                                className="text-blue-600 hover:text-blue-700 font-semibold"
-                            >
-                                Sign up here
-                            </button>
-                        </p>
-                    </div>
-
-                    <div className="mt-8 pt-6 border-t border-gray-200 text-center text-sm text-gray-500">
-                        <p className="font-medium mb-1">Demo Credentials:</p>
-                        <p>Admin: admin / admin123</p>
-                    </div>
-                </div>
+                </p>
             </div>
-        </div>
+
+            <div className="mt-8 pt-6 border-t border-glass-border text-center text-sm text-text-muted-dark">
+                <p className="font-medium mb-1">Demo Credentials:</p>
+                <p>Admin: admin / admin123</p>
+            </div>
+        </AuthShell>
     );
 };
 

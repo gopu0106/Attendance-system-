@@ -36,11 +36,21 @@ const requireAdmin = (req, res, next) => {
 // Register new user
 router.post('/register', async (req, res) => {
     try {
-        const { username, email, password, full_name } = req.body;
+        const { username, email, password, full_name, role } = req.body;
 
         // Validate input
         if (!username || !email || !password || !full_name) {
             return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        // Validate role (allow only these 4 values)
+        const validRoles = ['student', 'faculty', 'mess_staff', 'admin'];
+        const userRole = role || 'student'; // Default to student if not provided
+
+        if (!validRoles.includes(userRole)) {
+            return res.status(400).json({
+                error: `Invalid role. Must be one of: ${validRoles.join(', ')}`
+            });
         }
 
         // Check if user already exists
@@ -56,10 +66,10 @@ router.post('/register', async (req, res) => {
         // Hash password
         const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
 
-        // Create user
+        // Create user with the provided role
         const result = await runQuery(
             'INSERT INTO users (username, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, ?)',
-            [username, email, password_hash, full_name, 'student']
+            [username, email, password_hash, full_name, userRole]
         );
 
         // Create wallet for user

@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { Calendar, Check, X, Clock, Save, Users } from 'lucide-react';
+import { Calendar, Check, X, Clock, Save, Users, CheckSquare, XSquare, Download } from 'lucide-react';
+import GlowButton from '../components/ui/GlowButton';
+import toast from 'react-hot-toast';
 
 const FacultyAttendance = () => {
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [students, setStudents] = useState([
-        { id: 1, name: 'John Doe', rollNo: 'CS101', status: 'present' },
-        { id: 2, name: 'Jane Smith', rollNo: 'CS102', status: 'present' },
-        { id: 3, name: 'Mike Johnson', rollNo: 'CS103', status: 'absent' },
-        { id: 4, name: 'Sarah Williams', rollNo: 'CS104', status: 'present' },
-        { id: 5, name: 'Robert Brown', rollNo: 'CS105', status: 'late' },
+        { id: 1, name: 'John Doe', rollNo: 'CS101', status: 'present', remark: '' },
+        { id: 2, name: 'Jane Smith', rollNo: 'CS102', status: 'present', remark: '' },
+        { id: 3, name: 'Mike Johnson', rollNo: 'CS103', status: 'absent', remark: '' },
+        { id: 4, name: 'Sarah Williams', rollNo: 'CS104', status: 'present', remark: '' },
+        { id: 5, name: 'Robert Brown', rollNo: 'CS105', status: 'late', remark: 'Medical appointment' },
     ]);
+    const [selectedStudents, setSelectedStudents] = useState([]);
+    const [showRemarks, setShowRemarks] = useState({});
 
     const handleStatusChange = (id, newStatus) => {
         setStudents(students.map(student =>
@@ -17,86 +21,189 @@ const FacultyAttendance = () => {
         ));
     };
 
-    const handleSubmit = () => {
-        // In a real app, this would send data to POST /api/attendance/mark-bulk
-        console.log('Submitting attendance for:', date, students);
-        alert('Attendance marked successfully!');
+    const handleRemarkChange = (id, remark) => {
+        setStudents(students.map(student =>
+            student.id === id ? { ...student, remark } : student
+        ));
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'present': return 'bg-emerald-950/30 text-emerald-400 border-emerald-900/50 shadow-[0_0_10px_rgba(16,185,129,0.1)]';
-            case 'absent': return 'bg-rose-950/30 text-rose-400 border-rose-900/50 shadow-[0_0_10px_rgba(244,63,94,0.1)]';
-            case 'late': return 'bg-amber-950/30 text-amber-400 border-amber-900/50 shadow-[0_0_10px_rgba(245,158,11,0.1)]';
-            default: return 'bg-slate-800/50 text-slate-400 border-slate-700';
-        }
+    const toggleStudentSelection = (id) => {
+        setSelectedStudents(prev =>
+            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+        );
     };
+
+    const selectAll = () => {
+        setSelectedStudents(students.map(s => s.id));
+    };
+
+    const deselectAll = () => {
+        setSelectedStudents([]);
+    };
+
+    const bulkMarkStatus = (status) => {
+        if (selectedStudents.length === 0) {
+            toast.error('Please select students first');
+            return;
+        }
+
+        setStudents(students.map(student =>
+            selectedStudents.includes(student.id)
+                ? { ...student, status }
+                : student
+        ));
+        toast.success(`Marked ${selectedStudents.length} students as ${status}`);
+        setSelectedStudents([]);
+    };
+
+    const handleSubmit = () => {
+        console.log('Submitting attendance for:', date, students);
+        toast.success('Attendance saved successfully!');
+    };
+
+    const stats = {
+        present: students.filter(s => s.status === 'present').length,
+        absent: students.filter(s => s.status === 'absent').length,
+        late: students.filter(s => s.status === 'late').length,
+        total: students.length,
+    };
+
+    const attendancePercentage = ((stats.present + stats.late) / stats.total * 100).toFixed(1);
 
     return (
-        <div className="min-h-screen bg-slate-950 transition-colors duration-300 selection:bg-cyan-500 selection:text-white">
-            {/* Top decorative gradient */}
-            <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 h-48 sm:h-64 sticky top-0 z-0 opacity-80"></div>
+        <div className="max-w-7xl mx-auto px-4 fade-in-up">
+            {/* Header */}
+            <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <p className="text-secondary-cyan font-medium mb-1 uppercase tracking-wider text-sm">Faculty Portal</p>
+                    <h1 className="text-4xl font-bold text-text-light">Mark Attendance</h1>
+                    <p className="text-text-muted-dark mt-2 flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Computer Science - Section A
+                    </p>
+                </div>
 
-            {/* Ambient background glow */}
-            <div className="fixed inset-0 pointer-events-none z-0">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[100px] animate-blob"></div>
-                <div className="absolute top-[20%] right-[-10%] w-[30%] h-[30%] rounded-full bg-purple-600/10 blur-[100px] animate-blob animation-delay-2000"></div>
-                <div className="absolute bottom-[-10%] left-[20%] w-[30%] h-[30%] rounded-full bg-cyan-600/10 blur-[100px] animate-blob animation-delay-4000"></div>
+                {/* Date Picker */}
+                <div className="flex items-center gap-3 glass-card p-3 rounded-lg border border-glass-border shadow-glow-soft">
+                    <div className="p-2 bg-primary-violet/20 rounded-lg">
+                        <Calendar className="w-5 h-5 text-primary-violet" />
+                    </div>
+                    <input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="bg-transparent outline-none text-text-light font-medium [&::-webkit-calendar-picker-indicator]:invert"
+                    />
+                </div>
+            </header>
+
+            {/* Stats Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                <div className="glass-card p-4">
+                    <div className="text-2xl font-bold text-text-light">{stats.total}</div>
+                    <div className="text-xs text-text-muted-dark">Total Students</div>
+                </div>
+                <div className="glass-card p-4">
+                    <div className="text-2xl font-bold text-green-400">{stats.present}</div>
+                    <div className="text-xs text-text-muted-dark">Present</div>
+                </div>
+                <div className="glass-card p-4">
+                    <div className="text-2xl font-bold text-red-400">{stats.absent}</div>
+                    <div className="text-xs text-text-muted-dark">Absent</div>
+                </div>
+                <div className="glass-card p-4">
+                    <div className="text-2xl font-bold text-yellow-400">{stats.late}</div>
+                    <div className="text-xs text-text-muted-dark">Late</div>
+                </div>
+                <div className="glass-card p-4 border border-primary-violet">
+                    <div className="text-2xl font-bold text-primary-violet">{attendancePercentage}%</div>
+                    <div className="text-xs text-text-muted-dark">Attendance</div>
+                </div>
             </div>
 
-            <div className="relative z-10 w-full mx-auto px-4 sm:px-6 lg:px-12 -mt-32 sm:-mt-40 pb-12">
-                <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <div>
-                        <p className="text-cyan-300 font-medium mb-1">Faculty Portal</p>
-                        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] hover:scale-105 transition-transform origin-left duration-300">Mark Attendance</h1>
-                        <p className="text-slate-400 mt-2 flex items-center gap-2">
-                            <Users className="w-4 h-4 text-indigo-400" />
-                            Computer Science - Section A
-                        </p>
+            {/* Bulk Actions */}
+            {selectedStudents.length > 0 && (
+                <div className="glass-card p-4 mb-6 flex items-center justify-between border border-primary-violet">
+                    <span className="text-text-light font-semibold">
+                        {selectedStudents.length} student{selectedStudents.length > 1 ? 's' : ''} selected
+                    </span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => bulkMarkStatus('present')}
+                            className="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 border border-green-500/50 hover:bg-green-500/30 transition-smooth text-sm font-medium"
+                        >
+                            <CheckSquare className="w-4 h-4 inline mr-1" />
+                            Mark Present
+                        </button>
+                        <button
+                            onClick={() => bulkMarkStatus('absent')}
+                            className="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30 transition-smooth text-sm font-medium"
+                        >
+                            <XSquare className="w-4 h-4 inline mr-1" />
+                            Mark Absent
+                        </button>
+                        <button
+                            onClick={deselectAll}
+                            className="px-4 py-2 rounded-lg bg-white/5 text-text-light border border-glass-border hover:bg-white/10 transition-smooth text-sm font-medium"
+                        >
+                            Clear
+                        </button>
                     </div>
+                </div>
+            )}
 
-                    <div className="flex items-center gap-3 bg-slate-900/80 backdrop-blur-xl p-2.5 rounded-2xl border border-slate-700 shadow-lg group hover:border-cyan-500/50 transition-colors">
-                        <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-400 group-hover:text-cyan-400 transition-colors">
-                            <Calendar className="w-5 h-5" />
-                        </div>
-                        <input
-                            type="date"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="bg-transparent outline-none text-white font-medium focus:ring-0 [&::-webkit-calendar-picker-indicator]:invert"
-                        />
-                    </div>
-                </header>
-
-                <div className="bg-slate-900/80 backdrop-blur-xl rounded-3xl shadow-[0_0_30px_rgba(56,189,248,0.1)] border border-slate-800 overflow-hidden animate-fade-in-up">
-                    <div className="overflow-x-auto custom-scrollbar">
-                        <table className="w-full">
-                            <thead className="bg-slate-950/50 border-b border-slate-800">
-                                <tr>
-                                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Student Info</th>
-                                    <th className="px-6 py-5 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Roll No</th>
-                                    <th className="px-6 py-5 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-5 text-right text-xs font-bold text-slate-400 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-800">
-                                {students.map((student, idx) => (
-                                    <tr
-                                        key={student.id}
-                                        className="hover:bg-slate-800/50 transition-colors group animate-fade-in-up opacity-0"
-                                        style={{ animationDelay: `${idx * 100}ms` }}
-                                    >
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="font-semibold text-slate-200 group-hover:text-white transition-colors">{student.name}</div>
+            {/* Attendance Table */}
+            <div className="glass-card rounded-card-glass overflow-hidden shadow-glass">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead className="bg-white/5 border-b border-glass-border">
+                            <tr>
+                                <th className="px-6 py-4 text-left w-12">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedStudents.length === students.length}
+                                        onChange={(e) => e.target.checked ? selectAll() : deselectAll()}
+                                        className="w-4 h-4 rounded accent-primary-violet"
+                                    />
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-text-muted-dark uppercase tracking-wider">
+                                    Student Info
+                                </th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-text-muted-dark uppercase tracking-wider">
+                                    Roll No
+                                </th>
+                                <th className="px-6 py-4 text-center text-xs font-bold text-text-muted-dark uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th className="px-6 py-4 text-right text-xs font-bold text-text-muted-dark uppercase tracking-wider">
+                                    Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-glass-border">
+                            {students.map((student) => (
+                                <React.Fragment key={student.id}>
+                                    <tr className={`hover:bg-white/5 transition-smooth ${selectedStudents.includes(student.id) ? 'bg-primary-violet/10' : ''}`}>
+                                        <td className="px-6 py-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedStudents.includes(student.id)}
+                                                onChange={() => toggleStudentSelection(student.id)}
+                                                className="w-4 h-4 rounded accent-primary-violet"
+                                            />
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-slate-400 font-mono">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="font-semibold text-text-light">{student.name}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-text-muted-dark font-mono text-sm">
                                             {student.rollNo}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(student.status)} capitalize inline-flex items-center gap-1.5`}>
-                                                {student.status === 'present' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>}
-                                                {student.status === 'absent' && <span className="w-1.5 h-1.5 rounded-full bg-rose-400"></span>}
-                                                {student.status === 'late' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>}
+                                            <span className={`status-pill status-pill--${student.status}`}>
+                                                <span className={`pulsing-dot ${student.status === 'present' ? 'bg-green-400' :
+                                                        student.status === 'absent' ? 'bg-red-400' :
+                                                            'bg-yellow-400'
+                                                    }`}></span>
                                                 {student.status}
                                             </span>
                                         </td>
@@ -104,9 +211,9 @@ const FacultyAttendance = () => {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
                                                     onClick={() => handleStatusChange(student.id, 'present')}
-                                                    className={`p-2.5 rounded-xl transition-all duration-200 transform hover:scale-105 ${student.status === 'present'
-                                                            ? 'bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-lg shadow-emerald-500/30'
-                                                            : 'bg-slate-800 text-slate-500 hover:bg-emerald-950/50 hover:text-emerald-400 border border-transparent hover:border-emerald-500/30'
+                                                    className={`p-2 rounded-lg transition-smooth ${student.status === 'present'
+                                                            ? 'bg-green-500 text-white shadow-glow-soft'
+                                                            : 'bg-white/5 text-text-muted-dark hover:bg-green-500/20 hover:text-green-400 border border-glass-border'
                                                         }`}
                                                     title="Mark Present"
                                                 >
@@ -114,9 +221,9 @@ const FacultyAttendance = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleStatusChange(student.id, 'absent')}
-                                                    className={`p-2.5 rounded-xl transition-all duration-200 transform hover:scale-105 ${student.status === 'absent'
-                                                            ? 'bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/30'
-                                                            : 'bg-slate-800 text-slate-500 hover:bg-rose-950/50 hover:text-rose-400 border border-transparent hover:border-rose-500/30'
+                                                    className={`p-2 rounded-lg transition-smooth ${student.status === 'absent'
+                                                            ? 'bg-red-500 text-white shadow-glow-soft'
+                                                            : 'bg-white/5 text-text-muted-dark hover:bg-red-500/20 hover:text-red-400 border border-glass-border'
                                                         }`}
                                                     title="Mark Absent"
                                                 >
@@ -124,52 +231,62 @@ const FacultyAttendance = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => handleStatusChange(student.id, 'late')}
-                                                    className={`p-2.5 rounded-xl transition-all duration-200 transform hover:scale-105 ${student.status === 'late'
-                                                            ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/30'
-                                                            : 'bg-slate-800 text-slate-500 hover:bg-amber-950/50 hover:text-amber-400 border border-transparent hover:border-amber-500/30'
+                                                    className={`p-2 rounded-lg transition-smooth ${student.status === 'late'
+                                                            ? 'bg-yellow-500 text-white shadow-glow-soft'
+                                                            : 'bg-white/5 text-text-muted-dark hover:bg-yellow-500/20 hover:text-yellow-400 border border-glass-border'
                                                         }`}
                                                     title="Mark Late"
                                                 >
                                                     <Clock className="w-4 h-4" />
                                                 </button>
+                                                <button
+                                                    onClick={() => setShowRemarks(prev => ({ ...prev, [student.id]: !prev[student.id] }))}
+                                                    className="p-2 rounded-lg bg-white/5 text-text-muted-dark hover:bg-primary-violet/20 hover:text-primary-violet border border-glass-border transition-smooth text-xs font-medium"
+                                                    title="Add Remark"
+                                                >
+                                                    💬
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                    {/* Remark Row */}
+                                    {showRemarks[student.id] && (
+                                        <tr className="bg-white/5">
+                                            <td colSpan="5" className="px-6 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <label className="text-sm text-text-muted-dark">Remark:</label>
+                                                    <input
+                                                        type="text"
+                                                        value={student.remark}
+                                                        onChange={(e) => handleRemarkChange(student.id, e.target.value)}
+                                                        placeholder="Optional remark (e.g., Medical appointment)"
+                                                        className="flex-1 px-3 py-2 bg-white/5 border border-glass-border rounded-lg text-text-light text-sm focus:border-primary-violet focus:outline-none transition-smooth"
+                                                    />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
-                    <div className="p-6 bg-slate-900/50 border-t border-slate-800 flex justify-end">
-                        <button
-                            onClick={handleSubmit}
-                            className="flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 px-8 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all transform hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(6,182,212,0.6)]"
-                        >
-                            <Save className="w-5 h-5" />
-                            <span>Save Attendance</span>
-                        </button>
-                    </div>
+                {/* Footer */}
+                <div className="p-6 bg-white/5 border-t border-glass-border flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <button
+                        onClick={() => toast.success('CSV exported!')}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 text-text-light border border-glass-border hover:border-primary-violet hover:shadow-glow-soft transition-smooth"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Export CSV</span>
+                    </button>
+                    <GlowButton onClick={handleSubmit} className="gap-2">
+                        <Save className="w-5 h-5" />
+                        <span>Save Attendance</span>
+                    </GlowButton>
                 </div>
             </div>
-            <style>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 6px;
-                    height: 6px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-corner {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background-color: #334155;
-                    border-radius: 20px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background-color: #475569;
-                }
-            `}</style>
         </div>
     );
 };
